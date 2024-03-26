@@ -36,7 +36,8 @@ F_pos = F[indices] #The fast fourier transformation of the data
 T = 1/w_pos
 
 #Sort the list in terms of periods, with the highest F_pos to lowest
-sorted_periods = T[np.argsort(np.abs(F_pos))][::-1] 
+sorted_periods = T[np.argsort(np.abs(F_pos))][::-1]
+print("The top underlying monthly periods are given below in decreasing order:") 
 print(sorted_periods[0:5])
 
 

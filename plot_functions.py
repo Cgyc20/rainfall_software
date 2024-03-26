@@ -5,13 +5,14 @@ from geopy.distance import geodesic
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 import matplotlib.pyplot as plt
+import numpy as np
 
 
 class data_manipulation():
 
     def __init__(self,data_path):
         #We want to initialise the data itself and also the dictionary
-        #Containing the lon/lat values and also the dates
+    #Containing the lon/lat values and also the dates   
 
         try:
             data = netCDF4.Dataset(data_path)
@@ -21,46 +22,63 @@ class data_manipulation():
 
             dates_convert = [f"{date.year}-{date.month:02d}" for date in dates]
 
-    
+            
             metadata = {'lon' : data.variables['longitude'][:],
                     'lat' :  data.variables['latitude'][:],
                     'dates':dates,
                     'month':dates_convert}
             self.metadata= metadata
+
         
             #THis involves working out the area of the box ( using Geosedic class)
             coords_1 = (metadata['lat'][0],metadata['lon'][0])
             coords_2 = (metadata['lat'][0],metadata['lon'][-1])
-            coords_3 = (metadata['lat'][-1],metadata['lon'][-1])
             coords_4 = (metadata['lat'][-1],metadata['lon'][0])
 
-            self.area = geodesic(coords_1, coords_2).kilometers * geodesic(coords_1, coords_4).kilometers 
-            #We can also make a dataframe of total rainfall over entire area
-            total_rainfall = pd.DataFrame({'rf_mm': data['tp'][:,:,:].sum(axis=(1,2)) * 1000,'date': metadata['month']})
+            self.area = geodesic(coords_1, coords_2).meters * geodesic(coords_1, coords_4).meters
 
-            total_rainfall['mm_km2'] = total_rainfall['rf_mm']/self.area
-            total_rainfall['month_number'] = [date.month for date in metadata['dates']]
+            self.area_per_grid = self.area/(len(metadata['lon'])*len(metadata['lat']))
 
-
-            month_dictionary = {1:'January', #Mapping the months to the labels
-                    2:'February',
-                    3:'March',
-                    4:'April',
-                    5:'May',
-                    6:'June',
-                    7:'July',
-                    8:'August',
-                    9:'September',
-                    10:'October',
-                    11:'November',
-                    12:'December'}
-
-            total_rainfall['month'] = total_rainfall['month_number'].map(month_dictionary)
-
-            self.total_rainfall = total_rainfall #Define this within the class itself
+            self.total_kg = (data['tp'][:,:,:]*self.area_per_grid)*1000
+            
+            self.kg_m2 = self.total_kg.sum(axis = (1,2))/self.area
         except Exception as e:
             print(f"An error occurred while loading data: {e}")
 
+    def GenerateTable(self):
+
+        print("Generates Two datasets: Total rainfall over timeframe, Averaged by Month")
+        total_rainfall = pd.DataFrame({'kg_m2': self.kg_m2,'date': self.metadata['month']})
+        total_rainfall['month_number'] = [date.month for date in self.metadata['dates']]
+        """total_rainfall = pd.DataFrame({'rf_mm': data['tp'][:,:,:].sum(axis=(1,2)) * 1000,'date': metadata['month']})
+        total_rainfall['mm_km2'] = total_rainfall['rf_mm']/self.area
+        
+        total_rainfall['mass_per_m2'] = self.mass_per_m2"""
+        month_dictionary = {1:'January', #Mapping the months to the labels
+                2:'February',
+                3:'March',
+                4:'April',
+                5:'May',
+                6:'June',
+                7:'July',
+                8:'August',
+                9:'September',
+                10:'October',
+                11:'November',
+                12:'December'}
+
+        total_rainfall['month'] = total_rainfall['month_number'].map(month_dictionary)
+        monthly_mean_mass = total_rainfall.groupby('month_number')['kg_m2'].mean()
+
+        # Create a DataFrame from the resulting Series with specified column names
+        monthly_mean_mass = pd.DataFrame({
+            'Month_number': monthly_mean_mass.index,
+            'Monthly_Mass_Rainfall': monthly_mean_mass.values,
+            'month' : monthly_mean_mass.index.map(month_dictionary)
+        })
+
+        return total_rainfall, monthly_mean_mass, 
+        
 
         
 
@@ -101,6 +119,7 @@ class data_manipulation():
         ax.gridlines(draw_labels=True, linestyle='--')
 
         plt.show()
+        
 
 
 
