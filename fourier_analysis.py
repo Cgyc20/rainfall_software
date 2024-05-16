@@ -70,3 +70,4 @@ ax[1].tick_params(labelsize=13)
 ax[1].set_xlim(0, 24)
 plt.tight_layout()
 plt.show()
+

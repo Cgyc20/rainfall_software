@@ -68,7 +68,7 @@ class data_manipulation():
                 12:'December'}
 
         total_rainfall['month'] = total_rainfall['month_number'].map(month_dictionary)
-        monthly_mean_mass = total_rainfall.groupby('month_number')['kg_m2'].mean()
+        monthly_mean_mass = total_rainfall.groupby('month_number')['kg_m2'].mean() 
 
         # Create a DataFrame from the resulting Series with specified column names
         monthly_mean_mass = pd.DataFrame({
@@ -77,20 +77,41 @@ class data_manipulation():
             'month' : monthly_mean_mass.index.map(month_dictionary)
         })
 
-        return total_rainfall, monthly_mean_mass, 
+        return total_rainfall, monthly_mean_mass 
         
 
-        
+
+
 
     def rain_plot(self,index):
 
 
         rainfall = self.data.variables['tp'] # get the variable
         rainfall_data = rainfall[index,:,:] # get the data
+        lon = self.metadata['lon'] # get the longitude data
+        lat = self.metadata['lat'] # get the latitude data
+
+        plt.figure()
         plt.title(self.metadata['dates'][index])
-        plt.imshow(rainfall_data)
+
+        # Create a meshgrid for the coordinates
+        lon_grid, lat_grid = np.meshgrid(lon, lat)
+
+        # Plot the data using the coordinates
+        plt.pcolormesh(lon_grid, lat_grid, rainfall_data)
+
+        # Create the colorbar and set its label
+        cbar = plt.colorbar()
+        # Make label larger font
+        cbar.ax.tick_params(labelsize=10)
+        cbar.set_label('Meters of Rainfall')
+
+        # Add axis labels
+        plt.xlabel('Longitude')
+        plt.ylabel('Latitude')
+
         plt.show()
-    
+
         print("The rainfall data in this region for date:",self.metadata['dates'][index])
 
     def geo_plot(self):
@@ -122,11 +143,40 @@ class data_manipulation():
         
 
 
+    def average_rainfall_per_grid(self):
+        """
+        Calculate the average rainfall per grid point over the total time and plot it as a contour plot.
+        
+        Parameters:
+        data_manager (data_manipulation): An instance of the data_manipulation class containing the rainfall data.
+        """
 
-    
+        # Get the rainfall data
+        rainfall_data = self.data.variables['tp'][:]
+
+        # Calculate the average rainfall per grid point over the total time
+        self.average_rainfall = np.mean(rainfall_data, axis=0)
+
+        # Get longitude and latitude
+        lon = self.metadata['lon']
+        lat = self.metadata['lat']
+
+        # Create a contour plot
+        plt.figure(figsize=(10, 6))
+        plt.contourf(lon, lat, self.average_rainfall, cmap='Blues')
+        plt.colorbar(label='Average Rainfall (mm)')
+        plt.xlabel('Longitude')
+        plt.ylabel('Latitude')
+        plt.title('Average Rainfall per Grid Point')
+        plt.show()
+
+
 
 
         
-    
+
+
+            
         
+            
 
